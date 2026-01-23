@@ -1,0 +1,39 @@
+version: 2.1
+
+jobs:
+  build-and-push:
+    docker:
+      - image: cimg/base:stable
+    steps:
+      - checkout
+
+      - setup_remote_docker
+
+      - run:
+          name: Docker Login
+          command: |
+            echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+
+      - run:
+          name: Build Docker Image
+          command: |
+            docker build -t $DOCKERHUB_USERNAME/flask-demo:latest .
+
+      - run:
+          name: Push Image to Docker Hub
+          command: |
+            docker push $DOCKERHUB_USERNAME/flask-demo:latest
+
+      - run:
+          name: Run Flask App for 2 Minutes
+          command: |
+            docker run -d -p 5000:5000 --name flask_test $DOCKERHUB_USERNAME/flask-demo:latest
+            echo "Flask app running..."
+            sleep 120
+            docker stop flask_test
+            docker rm flask_test
+
+workflows:
+  flask-docker-pipeline:
+    jobs:
+      - build-and-push
